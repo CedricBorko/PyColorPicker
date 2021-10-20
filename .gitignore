@@ -1,1 +1,9 @@
 # Created by .ignore support plugin (hsz.mobi)
+.idea/.gitignore
+.idea/PyColorPicker.iml
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+screenshots
+__pycache__/

@@ -49,12 +49,6 @@ class ColorWindow(QMainWindow):
         self.central_layout.addWidget(self.title_bar)
         self.central_layout.addWidget(self.color_picker)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.key() == Qt.Key_F12:
-            print("t")
-            pm = self.grab()
-            pm.save("img.png")
-
 
 class ColorTitleBar(QFrame):
     def __init__(self, window: QMainWindow, height: int = 40, button_height: float = 0.8):
@@ -85,15 +79,22 @@ class ColorTitleBar(QFrame):
         self.title_label = QLabel("Color Picker", self)
         self.title_label.setObjectName("title_label")
 
-        self.minimize_btn = TitleButton(self, int(height * button_height))
+        self.screenshot_btn = QPushButton(self)
+        self.screenshot_btn.setObjectName("screenshot_btn")
+        self.screenshot_btn.clicked.connect(self.take_screenshot)
+        self.screenshot_btn.setFixedSize(int(button_height * height), int(button_height * height))
+        self.screenshot_btn.setToolTip("Screenshot")
+        self.screenshot_btn.setIcon(QIcon("icons/image.svg"))
+
+        self.minimize_btn = QPushButton(self)
         self.minimize_btn.setObjectName("minimize_btn")
-        self.minimize_btn.setFixedSize(int(height * button_height), int(height * button_height))
+        self.minimize_btn.setFixedSize(int(button_height * height), int(button_height * height))
         self.minimize_btn.setToolTip("Minimize")
         self.minimize_btn.setIcon(QIcon("icons/minimize.svg"))
 
-        self.exit_btn = TitleButton(self, int(height * button_height))
+        self.exit_btn = QPushButton(self)
+        self.exit_btn.setFixedSize(int(button_height * height), int(button_height * height))
         self.exit_btn.setObjectName("exit_btn")
-        self.exit_btn.setFixedSize(int(height * button_height), int(height * button_height))
         self.exit_btn.setToolTip("Exit")
         self.exit_btn.setIcon(QIcon("icons/x.svg"))
 
@@ -116,6 +117,7 @@ class ColorTitleBar(QFrame):
 
         self.layout_.addWidget(self.title_label)
         self.layout_.addStretch()
+        self.layout_.addWidget(self.screenshot_btn)
         self.layout_.addWidget(self.minimize_btn)
         self.layout_.addWidget(self.exit_btn)
 
@@ -132,25 +134,6 @@ class ColorTitleBar(QFrame):
             self.window.move(self.window.pos() + (
                 event.pos() - self.last_mouse_position))
 
-    def mouseDoubleClickEvent(self, event: QMouseEvent):
-        if self.window.isFullScreen():
-            return
-
-        if event.buttons() == Qt.LeftButton:
-            if self.maximized:
-                self.restore()
-            else:
-                self.maximize()
-
-
-class TitleButton(QPushButton):
-    def __init__(self, parent: ColorTitleBar, height: int):
-        super().__init__(parent)
-
-        self.setFixedSize(height, height)
-
-    def enterEvent(self, event: QEnterEvent) -> None:
-        self.setCursor(QCursor(Qt.PointingHandCursor))
-
-    def leaveEvent(self, event: QEvent) -> None:
-        self.setCursor(QCursor(Qt.ArrowCursor))
+    def take_screenshot(self):
+        import datetime
+        self.parent().grab().save(f"screenshots/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_img.png")
