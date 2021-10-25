@@ -1,4 +1,6 @@
-from PySide6.QtCore import Qt, QEvent
+import datetime
+
+from PySide6.QtCore import Qt, QEvent, QTimer
 from PySide6.QtGui import QCursor, QMouseEvent, QEnterEvent, QIcon, QKeyEvent, QPixmap
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QFrame, QLabel, QHBoxLayout, QPushButton
 
@@ -16,17 +18,18 @@ class ColorWindow(QMainWindow):
         self.statusBar().hide()
 
         self.setStyleSheet(
+            "QWidget{font: 12pt Times New Roman}"
             "QFrame#central{background: #292929}"
             "QLabel{color: white}"
-            "QFrame#title_bar{border: none; border-bottom: 1px solid white}"
+            "QFrame#title_bar{border: none; border-bottom: 1px solid #8A8A8A}"
             "QFrame#title_bar QPushButton{background: transparent; border: none; border-radius: 4px}"
             "QFrame#title_bar QPushButton:hover{background: #4c4c4c}"
             "QFrame#title_bar QPushButton:hover#exit_btn{background: #DC143C}"
-            "QFrame#title_bar QLabel{padding-left: 10px}"
+            "QFrame#title_bar QLabel{color: #8A8A8A; font-weight: bold}"
             "QFrame{background: #292929; border: none; color: white}"
             "QPushButton{background: transparent; border: none}"
-            "QSpinBox{background: #292929; border: none; color: white; font: 12pt Times New Roman}"
-            "QLineEdit{background: #292929; border: none; color: white; font: 12pt Times New Roman}"
+            "QSpinBox{background: #292929; border: none; color: white}"
+            "QLineEdit{background: #292929; border: none; color: white}"
             "QSlider:add-page{background: #8A8A8A}"
             "QSlider:sub-page{background: #6495ED}"
             "QSlider:groove:horizontal{height: 8px; background: #6495ED; border: none}"
@@ -61,10 +64,6 @@ class ColorTitleBar(QFrame):
         self.window = window
         self.maximized = False
 
-        window.statusBar().setSizeGripEnabled(True)
-
-        # STYLE
-        # ------------------------------------------------------------------------------------------
 
         # SETUP
         # ------------------------------------------------------------------------------------------
@@ -72,11 +71,12 @@ class ColorTitleBar(QFrame):
         self.setFixedHeight(height)
         self.setMouseTracking(True)
         self.setObjectName("title_bar")
+        window.statusBar().setSizeGripEnabled(True)
 
         # WIDGETS
         # ------------------------------------------------------------------------------------------
 
-        self.title_label = QLabel("Color Picker", self)
+        self.title_label = QLabel(self)
         self.title_label.setObjectName("title_label")
 
         self.screenshot_btn = QPushButton(self)
@@ -90,7 +90,7 @@ class ColorTitleBar(QFrame):
         self.minimize_btn.setObjectName("minimize_btn")
         self.minimize_btn.setFixedSize(int(button_height * height), int(button_height * height))
         self.minimize_btn.setToolTip("Minimize")
-        self.minimize_btn.setIcon(QIcon("icons/minimize.svg"))
+        self.minimize_btn.setIcon(QIcon("icons/minus.svg"))
 
         self.exit_btn = QPushButton(self)
         self.exit_btn.setFixedSize(int(button_height * height), int(button_height * height))
@@ -108,7 +108,7 @@ class ColorTitleBar(QFrame):
         # ------------------------------------------------------------------------------------------
 
         self.layout_ = QHBoxLayout(self)
-        self.layout_.setContentsMargins(0, 0, 0, 0)
+        self.layout_.setContentsMargins(5, 0, 5, 0)
         self.layout_.setSpacing(0)
         self.layout_.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
 
@@ -129,11 +129,21 @@ class ColorTitleBar(QFrame):
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         self.setCursor(QCursor(Qt.ArrowCursor))
 
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        if event.buttons() == Qt.LeftButton:
+            self.window.move(0, 0)
+
     def mouseMoveEvent(self, event: QMouseEvent):
         if event.buttons() == Qt.LeftButton:
-            self.window.move(self.window.pos() + (
-                event.pos() - self.last_mouse_position))
+            new_pos = self.window.pos() + (event.pos() - self.last_mouse_position)
+            if new_pos.x() < 0:
+                new_pos.setX(0)
+            if new_pos.y() < 0:
+                new_pos.setY(0)
+
+            self.window.move(new_pos)
 
     def take_screenshot(self):
         import datetime
-        self.parent().grab().save(f"screenshots/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_img.png")
+        self.parent().grab().save(
+            f"screenshots/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}_img.png")

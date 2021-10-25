@@ -1,12 +1,12 @@
 import math
 import re
 
-from PySide6.QtCore import Qt, QPoint, Signal, QSize
+from PySide6.QtCore import Qt, QPoint, Signal, QSize, QRect
 from PySide6.QtGui import QPaintEvent, QPainter, QPen, QColor, QBrush, QConicalGradient, \
     QMouseEvent, QClipboard, QIcon, QResizeEvent, QCursor, QWheelEvent, QKeyEvent, \
-    QFont
+    QFont, QImage
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QFrame, QLabel, QHBoxLayout, QLineEdit, \
-    QPushButton
+    QPushButton, QGraphicsDropShadowEffect
 
 from slider import PyIconSlider
 
@@ -90,6 +90,7 @@ class PyColorPicker(QFrame):
                 f" {round(self.color.yellowF() * 100)},"
                 f" {round(self.color.blackF() * 100)}"
             )
+
             self.rgb_group.edit.setText(
                 f"{self.color.red()}, {self.color.green()}, {self.color.blue()}"
             )
@@ -172,11 +173,15 @@ class PyColorPicker(QFrame):
         self.luminance.value_edit.setValue(self.luminance.slider.value())
 
         self.color = QColor.fromHsl(
-            360 - self.wheel.angle,
+            (360 - self.wheel.angle) % 360,
             round(self.saturation.slider.value() / 100 * 255),
             round(self.luminance.slider.value() / 100 * 255),
             a=255
         )
+
+        self.hex_group.edit.blockSignals(True)
+        self.rgb_group.edit.blockSignals(True)
+        self.cmyk_group.edit.blockSignals(True)
 
         self.hex_group.edit.setText(self.color.name(QColor.HexRgb).upper())
         self.rgb_group.edit.setText(
@@ -191,6 +196,10 @@ class PyColorPicker(QFrame):
             f" {round(self.color.blackF() * 100)}"
         )
 
+        self.hex_group.edit.blockSignals(False)
+        self.rgb_group.edit.blockSignals(False)
+        self.cmyk_group.edit.blockSignals(False)
+
         self.update()
 
     def get_hex(self):
@@ -201,7 +210,10 @@ class PyColorPicker(QFrame):
 
     def get_cmyk(self):
         QClipboard().setText(
-            f"{self.color.cyan()}, {self.color.magenta()}, {self.color.yellow()}, {self.color.black()}"
+            f"{int(self.color.cyanF() * 100)},"
+            f" {int(self.color.magentaF() * 100)},"
+            f" {int(self.color.yellowF() * 100)},"
+            f" {int(self.color.blackF() * 100)}"
         )
 
 
@@ -230,11 +242,11 @@ class PyColorWheel(QWidget):
         self.gradient = QConicalGradient()
         self.gradient.setAngle(90)
         self.gradient.setColorAt(0, QColor(255, 0, 0, 255))
-        self.gradient.setColorAt(5.0 / 6, QColor(255, 255, 0, 255))
-        self.gradient.setColorAt(4.0 / 6, QColor(0, 255, 0, 255))
-        self.gradient.setColorAt(3.0 / 6, QColor(0, 255, 255, 255))
-        self.gradient.setColorAt(2.0 / 6, QColor(0, 0, 255, 255))
         self.gradient.setColorAt(1.0 / 6, QColor(255, 0, 255, 255))
+        self.gradient.setColorAt(2.0 / 6, QColor(0, 0, 255, 255))
+        self.gradient.setColorAt(3.0 / 6, QColor(0, 255, 255, 255))
+        self.gradient.setColorAt(4.0 / 6, QColor(0, 255, 0, 255))
+        self.gradient.setColorAt(5.0 / 6, QColor(255, 255, 0, 255))
         self.gradient.setColorAt(1, QColor(255, 0, 0, 255))
 
     def resizeEvent(self, event: QResizeEvent) -> None:
@@ -270,11 +282,15 @@ class PyColorWheel(QWidget):
             self.size - self.arc_width,
             self.size - self.arc_width,
             self.size // 2, self.size // 2,
-            0 * 16, 360 * 16)
+            0 * 16, 360 * 16
+        )
+
+
 
         painter.setPen(QPen(QColor("#FFF"), 3.0))
         painter.setFont(QFont("Times New Roman", 12))
-        painter.drawText(self.rect(), Qt.AlignCenter, f"{self.angle}")
+        painter.drawText(self.rect(), Qt.AlignHCenter | Qt.AlignVCenter,
+                         f"{(360 - self.angle) % 360}")
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if event.buttons() == Qt.LeftButton:
@@ -333,7 +349,7 @@ class DisplayGroup(QFrame):
 
         self.label = QLabel(f"{title}:")
         self.label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.label.setFixedSize(40, 40)
+        self.label.setFixedSize(80, 40)
 
         self.edit = QLineEdit()
         self.edit.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
@@ -356,3 +372,4 @@ class DisplayGroup(QFrame):
         self.layout_.addWidget(self.copy_btn)
 
         self.edit.textEdited.connect(getattr(self.parent(), "set_color_by_" + title.lower()))
+        self.copy_btn.clicked.connect(getattr(self.parent(), "get_" + title.lower()))
